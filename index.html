@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- <link rel="stylesheet" href="style.css" /> -->
+    <link rel="stylesheet" href="style.css" />
+    <title>Marvel API fun</title>
+  </head>
+  <body>
+    <header><h1>Marvel Comics Lookup</h1></header>
+    <form id="control" name="Search">
+      <label for="title">Title</label
+      ><input type="text" id="title" name="title" />
+
+      <label for="startYear">Year</label>
+      <input type="text" id="startYear" name="startYear" />
+
+      <label for="">Issue</label>
+      <input type="number" id="issueNumber" name="issueNumber" />
+
+      <label for="creators">Creators</label>
+      <input type="text" id="creators" name="creators" />
+      <button id="search">Search</button>
+    </form>
+
+    <div id="output"></div>
+    <div id="page-controls">
+      <button id="next">Next Results</button>
+    </div>
+    <script src="main.js"></script>
+  </body>
+</html>
