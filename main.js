@@ -8,6 +8,11 @@ const baseURL = "http://gateway.marvel.com/v1/public/";
 const demoURL = "https://gateway.marvel.com:443/v1/public/comics?apikey=";
 
 const output = document.getElementById("output");
+const spotlight = document.getElementById("spotlight");
+const closeSpotlight = document.querySelector("#spotlight #close");
+const paginateControls = document.querySelector("#page-controls");
+
+let mainData = [];
 
 console.log(`${demoURL}${pubkey}`);
 
@@ -22,6 +27,18 @@ const nextButton = document.getElementById("next");
 
 //events
 window.addEventListener("load", randomIssue);
+closeSpotlight.addEventListener("click", (e) => {
+  spotlight.classList.remove("show");
+});
+
+document.addEventListener("click", function (e) {
+  if (e.target.className === "creator__name") {
+    console.log(`look up this creator `);
+  }
+  if (e.target.closest(".issue")) {
+    spotlightIssue(e.target.closest(".issue").dataset.id);
+  }
+});
 
 submit.addEventListener("click", function (e) {
   e.preventDefault();
@@ -52,9 +69,9 @@ function setQuery() {
   }
 
   let orderBy = "&orderBy=onsaleDate";
-  const query = `${queryTitle ? queryTitle : ""}${orderBy}${
+  const query = `&noVariants=true&${queryTitle ? queryTitle : ""}${orderBy}${
     queryIssue ? queryIssue : ""
-  }&noVariants=true&limit=50`;
+  }&limit=25`;
   getData(query);
 }
 
@@ -63,12 +80,23 @@ function setQuery() {
 function getData(query) {
   const url = `${demoURL}${pubkey}${query}`;
   console.log(url);
+  output.innerHTML = "";
   fetch(url)
     .then((response) => response.json())
     .then((data) => {
-      console.log(data);
+      console.log(data.data);
+      mainData = data.data.results;
+
+      if (data.data.results.length === 1) {
+        spotlightIssue(0);
+        return;
+      }
+
       displayData(data.data.results);
-      paginate(data.data, query);
+      if (data.data.total > 25) {
+        console.log("lots of results");
+        paginate(data.data, query);
+      }
     })
     .catch((error) => console.log(`Error: ${error}`));
 }
@@ -78,11 +106,13 @@ function paginate(data, query) {
   let offset = data.offset;
   let totalResults = data.total;
   let limit = data.limit;
-
+  paginateControls.style.visibility = "visible";
   if (pageTotal === totalResults) {
     return;
   } else {
     nextResults = `${query}&offset=${pageTotal}`;
+
+    console.log("paginate this!");
   }
 }
 
@@ -92,14 +122,35 @@ function displayData(data) {
   output.innerHTML = "";
   let frag = document.createDocumentFragment();
 
-  data.forEach((data) => {
+  data.forEach((data, index) => {
     let entry = document.createElement("div");
     entry.classList.add("issue");
-    entry.innerHTML = `<a href="${data.thumbnail.path}/detail.${data.thumbnail.extension}" target="_blank"><img src="${data.thumbnail.path}/portrait_xlarge.${data.thumbnail.extension}" alt="${data.title}"/></a><h2>${data.title}</h2>`;
+    entry.setAttribute("data-id", index);
+    entry.innerHTML = `<img src="${data.thumbnail.path}/portrait_xlarge.${data.thumbnail.extension}" alt="${data.title}"/><h2>${data.title}</h2>`;
 
     frag.appendChild(entry);
   });
   output.appendChild(frag);
+}
+
+// issue spotlight
+function spotlightIssue(index) {
+  document.querySelector("#spotlight h2").textContent = mainData[index].title;
+  document.querySelector("#spotlight p").textContent =
+    mainData[index].description;
+  document.querySelector(
+    "#spotlight img"
+  ).src = `${mainData[index].thumbnail.path}/detail.${mainData[index].thumbnail.extension}`;
+  document.querySelector("#spotlight img").alt = mainData[index].title;
+  document.querySelector("#spotlight .creators").innerHTML = mainData[
+    index
+  ].creators.items
+    .map(
+      (item) =>
+        `<li ><span class="creator__role">${item.role}</span>: <span class="creator__name" data-uri='${item.resourceURI}'>${item.name}</span></li>`
+    )
+    .join("");
+  spotlight.classList.add("show");
 }
 
 //pick a number
