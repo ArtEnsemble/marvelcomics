@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- <link rel="stylesheet" href="style.css" /> -->
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/style.css" />
     <title>Marvel API fun</title>
   </head>
   <body>
@@ -28,14 +28,19 @@
     <div id="output"></div>
 
     <div id="page-controls">
-      <button id="next">Next Results</button>
+      <button id="previous">Previous</button>
+      <span id="resultPages"></span>
+      <button id="next">Next</button>
     </div>
 
     <div id="spotlight">
-      <img src="" alt="" />
+      <figure>
+        <img src="" alt="" />
+      </figure>
       <div class="issue__details">
         <h2>spotlight</h2>
-        <p>
+        <span class="saleDate"></span>
+        <p class="issue__description">
           Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eos itaque
           maxime obcaecati vero delectus explicabo repudiandae nihil beatae
           praesentium quas eligendi et, fuga porro quo facilis voluptatum at
@@ -50,6 +55,6 @@
       </div>
     </div>
 
-    <script src="main.js"></script>
+    <script src="/main.js"></script>
   </body>
 </html>

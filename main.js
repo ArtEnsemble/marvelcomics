@@ -12,8 +12,15 @@ const spotlight = document.getElementById("spotlight");
 const closeSpotlight = document.querySelector("#spotlight #close");
 const paginateControls = document.querySelector("#page-controls");
 
-let mainData = [];
+let offset = 0;
+let nextOffset = 0;
+let prevOffset = 0;
+let resultPages = 0;
 
+let currentQuery = "";
+
+let mainData = [];
+let objData = [];
 console.log(`${demoURL}${pubkey}`);
 
 //FORM DATA
@@ -36,7 +43,19 @@ document.addEventListener("click", function (e) {
     console.log(`look up this creator `);
   }
   if (e.target.closest(".issue")) {
-    spotlightIssue(e.target.closest(".issue").dataset.id);
+    getIssue(e.target.closest(".issue").dataset.id);
+  }
+
+  if (e.target.closest("#resultPages a")) {
+    if (document.querySelector(".currentPage")) {
+      document.querySelector(".currentPage").classList.remove("currentPage");
+    }
+    console.log(`${currentQuery}&offset=${e.target.dataset.offset}`);
+
+    getData(
+      `${baseURL}/comics?${currentQuery}&offset=${e.target.dataset.offset}`
+    );
+    e.target.classList.add("currentPage");
   }
 });
 
@@ -53,7 +72,8 @@ submit.addEventListener("click", function (e) {
 
 nextButton.addEventListener("click", function (e) {
   e.preventDefault();
-  getData(nextResults);
+  offset += 25;
+  getData(`${nextResults}&offset=${offset}`);
 });
 
 // queries
@@ -66,19 +86,21 @@ function setQuery() {
   }
   if (issue.value) {
     queryIssue = `&issueNumber=${issue.value}`;
+    0;
   }
 
   let orderBy = "&orderBy=onsaleDate";
-  const query = `&noVariants=true&${queryTitle ? queryTitle : ""}${orderBy}${
+  const query = `&noVariants=true${queryTitle ? queryTitle : ""}${orderBy}${
     queryIssue ? queryIssue : ""
   }&limit=25`;
-  getData(query);
+  currentQuery = query;
+  getData(`${baseURL}/comics?${query}`);
 }
 
 //get data
 
 function getData(query) {
-  const url = `${demoURL}${pubkey}${query}`;
+  const url = `${query}&apikey=${pubkey}`;
   console.log(url);
   output.innerHTML = "";
   fetch(url)
@@ -91,28 +113,62 @@ function getData(query) {
         spotlightIssue(0);
         return;
       }
+      if (data.data.results.length == 0) {
+        output.innerHTML = "<p>Sorry, no results</p>";
+        document.getElementById("resultPages").innerHTML = "";
+      } else {
+        displayData(data.data.results);
 
-      displayData(data.data.results);
-      if (data.data.total > 25) {
-        console.log("lots of results");
-        paginate(data.data, query);
+        if (data.data.total > 25) {
+          console.log("lots of results");
+          paginate(data.data, query);
+        }
       }
     })
     .catch((error) => console.log(`Error: ${error}`));
 }
 
+function getIssue(id) {
+  fetch(`${baseURL}/comics/${id}?apikey=${pubkey}`)
+    .then((response) => response.json())
+    .then((issueDetails) => {
+      // console.log(issueDetails.data.results[0]);
+      let issue = createObject(issueDetails.data.results[0]);
+      console.log(issue);
+      displayIssue(issue);
+    });
+}
+
+function getSeries(id) {}
+
 function paginate(data, query) {
+  document.getElementById("resultPages").innerHTML = "";
+
+  // number of results
   let pageTotal = data.count;
-  let offset = data.offset;
+  offset = data.offset + 25;
   let totalResults = data.total;
-  let limit = data.limit;
+
+  //calculate number of result pages
+  resultPages = Math.ceil(totalResults / 25);
+  // create page links
+  for (i = 0; i < resultPages; i++) {
+    document
+      .getElementById("resultPages")
+      .insertAdjacentHTML(
+        "beforeend",
+        `<a data-offset=${i * 25} class='${
+          i * 25 === offset - 25 ? "currentPage" : " "
+        }'>${i + 1} </a>`
+      );
+  }
+
+  //show page controls
   paginateControls.style.visibility = "visible";
   if (pageTotal === totalResults) {
     return;
   } else {
-    nextResults = `${query}&offset=${pageTotal}`;
-
-    console.log("paginate this!");
+    nextResults = `${query}`;
   }
 }
 
@@ -125,7 +181,7 @@ function displayData(data) {
   data.forEach((data, index) => {
     let entry = document.createElement("div");
     entry.classList.add("issue");
-    entry.setAttribute("data-id", index);
+    entry.setAttribute("data-id", data.id);
     entry.innerHTML = `<img src="${data.thumbnail.path}/portrait_xlarge.${data.thumbnail.extension}" alt="${data.title}"/><h2>${data.title}</h2>`;
 
     frag.appendChild(entry);
@@ -153,9 +209,79 @@ function spotlightIssue(index) {
   spotlight.classList.add("show");
 }
 
+function displayIssue(issue) {
+  document.querySelector("#spotlight h2").textContent = issue.title;
+  document.querySelector("#spotlight p").textContent = issue.description;
+  document.querySelector(
+    "#spotlight img"
+  ).src = `${issue.thumbnailPath}/detail.${issue.thumbNailExtension}`;
+  document.querySelector("#spotlight img").alt = issue.title;
+  if (issue.creators) {
+    document.querySelector("#spotlight .creators").innerHTML =
+      issue.creators.items
+        .map(
+          (item) =>
+            `<li ><span class="creator__role">${item.role}</span>: <span class="creator__name" data-uri='${item.resourceURI}'>${item.name}</span></li>`
+        )
+        .join("");
+  }
+  spotlight.classList.add("show");
+}
+
+//next or previous issue
+
 //pick a number
 function randomIssue() {
   let issue = Math.floor(Math.random() * 500);
   console.log(issue);
-  getData(`&issueNumber=${issue}`);
+  getData(
+    `https://gateway.marvel.com:443/v1/public/comics?issueNumber=${issue}&orderBy=onsaleDate`
+  );
+}
+
+class Issue {
+  constructor(
+    title,
+    id,
+    issueNumber,
+    thumbnailPath,
+    thumbNailExtension,
+    creators,
+    series,
+    saleDate
+  ) {
+    this.title = title;
+    this.id = id;
+    this.issueNumber = issueNumber;
+    this.thumbnailPath = thumbnailPath;
+    this.thumbNailExtension = thumbNailExtension;
+    this.creators = creators;
+    this.series = series;
+    this.saleDate = saleDate;
+  }
+  nextIssue() {
+    return `${baseURL}comics?issueNumber=${this.issueNumber + 1}&series=${
+      this.series
+    }&apikey=${pubkey}`;
+  }
+}
+
+class Query {
+  constructor(title, year, issue) {
+    (this.title = title), (this.issue = issue), (this.year = year);
+  }
+}
+
+function createObject(item) {
+  let obj = new Issue(
+    item.title,
+    item.id,
+    item.issueNumber,
+    item.thumbnail.path,
+    item.thumbnail.extension,
+    item.creators,
+    item.series.resourceURI,
+    item.dates[0].date
+  );
+  return obj;
 }
